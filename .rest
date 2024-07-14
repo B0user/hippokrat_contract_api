@@ -1,0 +1,47 @@
+POST http://localhost:2005/patient HTTP/1.1
+Content-Type: application/json
+
+{
+    "patient_iin": "013456789012",
+    "patient_fullname": "Abraham Bing",
+    "company_enroller": "Company B",
+    "services_list": {
+        "service1": {},
+        "service2": {},
+        "service3": {},
+        "service4": {}
+    }
+}
+
+###
+GET http://localhost:2005/api/contract/ HTTP/1.1
+
+###
+GET http://localhost:2005/patient/667963988a52a4d15165327f HTTP/1.1
+
+###
+GET http://localhost:2005/api/contract/search-patient?query=123456789012 HTTP/1.1
+
+###
+DELETE http://localhost:2005/api/contract/6690d5633df461e8d7e7a6b8 HTTP/1.1
+
+###
+POST http://localhost:2005/hid/createdoctor HTTP/1.1
+Content-Type: application/json
+
+{
+    "user": "test_admin",
+    "pwd": "123456",
+    "role": "admin",
+    "name": "Admin Test"
+}
+
+###
+curl -X POST http://localhost:2005/auth \
+-H "Content-Type: application/json" \
+-d '{"user": "test_admin", "pwd": "123456"}'
+
+###
+curl -X GET http://localhost:2005/api/contract/ \
+-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6InRlc3RfYWRtaW4iLCJmdWxsbmFtZSI6IkFkbWluIFRlc3QiLCJyb2xlIjoiYWRtaW4iLCJpYXQiOjE3MjA5NTM5NTEsImV4cCI6MTcyMDk1NDU1MX0.YMJ7X5LX2QljXbNXfBj-yJcuS9KUGpIS7pdzufIWpEU"
+
