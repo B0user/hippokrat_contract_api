@@ -1,6 +1,6 @@
 require('dotenv').config();
 const allowedOrigins = [
-    'https://strahovka.hippokrat.kz',
+    'https://contract.hippokrat.kz',
     'http://localhost:3000',
     'http://localhost:2005',
 ];
