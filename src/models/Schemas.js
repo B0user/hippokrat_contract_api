@@ -27,24 +27,21 @@ const contractSchema = new Schema({
     },
     patients: [{
         iin: {
-            type: String,
-            required: true
+            type: String
         },
         dob: {
             type: Date,
             default: null
         },
         gender: {
-            type: String,
-            required: true
+            type: String
         },
         fullname: {
             type: String,
             required: true
         },
         position: {
-            type: String,
-            required: true
+            type: String
         },
         assigned: {
             type: Map,
@@ -54,6 +51,17 @@ const contractSchema = new Schema({
             }
         },
         therapist_comment: String,
+        change_history: [{
+            doctor_name: String,
+            change_date: Date,
+            change_description: String
+        }],
+        comments: [{
+            doctor_name: String,
+            doctor_role: String,
+            comment_date: Date,
+            comment_content: String
+        }],
         date_added: {
             type: Date,
             default: Date.now

@@ -9,7 +9,8 @@ router.get('/companies', verifyRoles('registrator', 'therapist', 'admin', 'ophth
 router.get('/search-patient', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'), strahovkaController.searchPatients); 
 router.put('/add-patient', verifyRoles('registrator'), strahovkaController.addPatientToContract);
 router.patch('/:contractId/patients/:patientId/procedures', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'), strahovkaController.updateOnePatientAssigned);
-router.patch('/:contractId/patients/:patientId/comment', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'),strahovkaController.updateOnePatientTherapistComment);
+router.patch('/:contractId/patients/:patientId/comment', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'),strahovkaController.updateOnePatientComment);
+router.patch('/:contractId/patients/:patientId/info', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'), strahovkaController.updateOnePatientInfo);
 
 router.get('/:id', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'), strahovkaController.getContractById);
 router.put('/:id', verifyRoles('registrator', 'therapist', 'admin', 'ophthalmologist', 'otolaryngologist', 'surgeon', 'neurologist', 'gynecologist'), strahovkaController.updateContractById);
