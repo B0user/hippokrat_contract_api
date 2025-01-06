@@ -2,13 +2,13 @@ const { Contract } = require('../models/Schemas');
 
 // Create a new contract
 const createContract = async (req, res) => {
-    
+
     const doctorName = req.user?.fullname;
-    if (!doctorName) 
+    if (!doctorName)
         return res.status(400).json({ error: 'DoctorName empty' });
 
-    const { company_enroller, patients, date_of_contract } = req.body;
-    if (!company_enroller || !patients || !date_of_contract) {
+    const { company_enroller, patients, date_of_contract, procedures_by_contract } = req.body;
+    if (!company_enroller || !patients || !date_of_contract || !procedures_by_contract) {
         return res.status(400).json({ message: 'Company, patients, and contract date are required.' });
     }
 
@@ -19,6 +19,7 @@ const createContract = async (req, res) => {
             date_of_contract
         });
 
+
         if (existingContract) {
             return res.status(409).json({ message: 'Contract for this company and date already exists.' });
         }
@@ -28,11 +29,14 @@ const createContract = async (req, res) => {
             patients,
             date_of_contract,
             date_added: Date.now(),
-            date_updated: Date.now()
+            date_updated: Date.now(),
+            procedures_by_contract
         });
         const savedContract = await newContract.save();
+
         res.status(201).json(savedContract);
     } catch (err) {
+        console.log(err);
         res.status(500).json({ message: err.message });
     }
 };
@@ -75,9 +79,9 @@ const getContractById = async (req, res) => {
 
 // Update a specific contract by ID
 const updateContractById = async (req, res) => {
-    
+
     const doctorName = req.user?.fullname;
-    if (!doctorName) 
+    if (!doctorName)
         return res.status(400).json({ error: 'DoctorName empty' });
 
     const { id } = req.params;
@@ -113,15 +117,12 @@ const updateContractById = async (req, res) => {
 };
 
 const updateOnePatientAssigned = async (req, res) => {
-
-    
     const doctorName = req.user?.fullname;
-    if (!doctorName) 
+    if (!doctorName)
         return res.status(400).json({ error: 'DoctorName empty' });
 
     const { contractId, patientId } = req.params;
-    const { assigned } = req.body;  // assigned come as an object {Терапевт: '2024-07-11', ...}
-
+    const { assigned } = req.body; // assigned comes as an array of objects [{procedure: 'name', doctor: 'specialist', gender: '', date: '2024-07-11'}]
 
     try {
         const contract = await Contract.findById(contractId);
@@ -134,15 +135,27 @@ const updateOnePatientAssigned = async (req, res) => {
             return res.status(404).json({ message: 'Patient not found.' });
         }
 
-        patient.assigned = assigned;
+        // Validate and update `assigned`
+        if (!Array.isArray(assigned)) {
+            return res.status(400).json({ message: '`assigned` must be an array of procedures.' });
+        }
+
+        // Ensure all assigned procedures have the required structure
+        const validAssigned = assigned.map(item => ({
+            procedure: item.procedure || 'Unknown Procedure',
+            doctor: item.doctor || null,
+            gender: item.gender || null,
+            date: item.date ? new Date(item.date) : null, // Convert date strings to Date objects
+        }));
+
+        patient.assigned = validAssigned; // Assign the validated array
         patient.date_updated = Date.now();
         contract.date_updated = Date.now();
-
 
         patient.change_history.push({
             doctor_name: doctorName,
             change_date: Date.now(),
-            change_description: `Updated assigned procedures: ${JSON.stringify(assigned)}`
+            change_description: `Updated assigned procedures: ${JSON.stringify(validAssigned)}`
         });
 
         await contract.save();
@@ -153,6 +166,7 @@ const updateOnePatientAssigned = async (req, res) => {
     }
 };
 
+
 const updateOnePatientComment = async (req, res) => {
     const doctorName = req.user?.fullname;
     const doctorRole = req.user?.role;
@@ -161,8 +175,7 @@ const updateOnePatientComment = async (req, res) => {
 
     const { contractId, patientId } = req.params;
     const { comment_content } = req.body;
-
-    if (!comment_content) 
+    if (!comment_content)
         return res.status(400).json({ error: 'Comment content empty' });
 
     try {
@@ -199,7 +212,7 @@ const updateOnePatientComment = async (req, res) => {
                 comment_date: Date.now(),
                 comment_content
             });
-        }      
+        }
 
         patient.change_history.push({
             doctor_name: doctorName,
@@ -219,14 +232,14 @@ const updateOnePatientComment = async (req, res) => {
 const updateOnePatientInfo = async (req, res) => {
     const doctorName = req.user?.fullname;
     const doctorRole = req.user?.role;
-    
+
     if (!doctorName || !doctorRole)
         return res.status(400).json({ error: 'DoctorName empty' });
 
     const { contractId, patientId } = req.params;
     const { patient_info } = req.body;
 
-    if (!patient_info) 
+    if (!patient_info)
         return res.status(400).json({ error: 'Comment content empty' });
 
     try {
@@ -296,65 +309,46 @@ const addPatientToContract = async (req, res) => { // Make a check for gender an
 
 
 
-        const existingPatient = contract.patients.find(p => p.iin === patient.iin);
-        
-        if(existingPatient){
-            existingPatient.assigned.set('Регистратор', new Date());
-            existingPatient.date_updated = new Date();
+        const existingPatient = contract.patients.find(p => p.iin === patient.iin || p.fullname === patient.fullname);
 
-            
+        if(existingPatient){
+            const registratorProcedure = existingPatient.assigned.find(
+                procedure => procedure.procedure === 'Регистратор'
+            );
+
+            if (registratorProcedure) {
+                registratorProcedure.date = new Date();
+            }
+
+            existingPatient.date_updated = new Date();
             contract.date_updated = new Date();
             const updatedContract = await contract.save();
-
             res.status(409).json(updatedContract);
 
         }
         else {
-            // Get the assigned procedures from the first patient in the contract
-        let assignedProceduresTemplate = {
-            'Регистратор': null,
-            'Терапевт': null,
-            'Офтальмолог (окулист)': null,
-            'Отоларинголог (ЛОР)': null,
-            'Хирург': null,
-            'Невролог': null,
-            'Гинеколог (для женщин)': null
-        };
-        // if (contract.patients.length > 0) {
-        //     contract.patients[0].assigned.forEach((value, key) => {
-        //         assignedProceduresTemplate[key] = value;
-        //     });
-        // }
+            const assignedProcedures = contract.procedures_by_contract
+                .filter(procedure => (!procedure.gender || procedure.gender === patient.gender))
+                .map(procedure => ({
+                    ...procedure,
+                    date: procedure.procedure === 'Регистратор' ? new Date() : null, // Set date for 'Регистратор'
+                 
+            }));
 
-        
-        // // Create a new assigned procedures map with all values set to null, except 'Регистратор' set to the current date
-        // const assignedProcedures = new Map();
-        // Object.keys(assignedProceduresTemplate).forEach(key => {
-        //     assignedProcedures.set(key, key === 'Регистратор' ? new Date() : null);
-        // });
+            contract.patients.push({
+                iin: patient.iin,
+                fullname: patient.fullname,
+                dob: patient.dob,
+                gender: patient.gender,
+                position: patient.position,
+                assigned: assignedProcedures,
+                date_added: new Date(),
+                date_updated: new Date()
+            });
 
-        assignedProceduresTemplate.reduce((acc, procedure) => {
-            if (!(patient.gender === 'Мужской' && procedure === 'Гинеколог (для женщин)')) {
-                acc[procedure] = null;
-            }
-            return acc;
-        });
-
-        contract.patients.push({
-            iin: patient.iin,
-            fullname: patient.fullname,
-            dob: patient.dob,
-            gender: patient.gender,
-            position: patient.position,
-            assigned: assignedProceduresTemplate,
-            date_added: new Date(),
-            date_updated: new Date()
-        });
-
-        contract.date_updated = new Date();
-        const updatedContract = await contract.save();
-
-        res.status(200).json(updatedContract);
+            contract.date_updated = new Date();
+            const updatedContract = await contract.save();
+            res.status(200).json(updatedContract);
         }
     } catch (err) {
         console.log(err);
@@ -385,7 +379,7 @@ const searchPatients = async (req, res) => {
                 )
                 .map(patient => ({
                     ...patient.toObject(),
-                    assigned: Object.fromEntries(patient.assigned), // Convert Map to object
+                    assigned: patient.assigned,
                     company_enroller: contract.company_enroller,
                     date_of_contract: contract.date_of_contract,
                     contract_id: contract._id

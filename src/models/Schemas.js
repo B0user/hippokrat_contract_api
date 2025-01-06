@@ -26,8 +26,13 @@ const contractSchema = new Schema({
         required: true
     },
     patients: [{
+        id: {
+            type: String,
+            default: null
+        },
         iin: {
-            type: String
+            type: String,
+            default: null
         },
         dob: {
             type: Date,
@@ -41,15 +46,37 @@ const contractSchema = new Schema({
             required: true
         },
         position: {
-            type: String
+            type: String,
+            default: null
         },
-        assigned: {
-            type: Map,
-            of: {
-                type: Date,
-                default: null
+        object: {
+            type: String,
+            default: null
+        },
+        work_experience: {
+            type: String,
+            default: null
+        },
+        do_last_medrev: {
+            type: String,
+            default: null
+        },
+        occupational_hazard: {
+            type: String,
+            default: null
+        },
+        do_this_medrev: {
+            type: String,
+            default: null
+        },
+        assigned: [
+            {
+                procedure: { type: String, required: true },
+                doctor: { type: String },
+                gender: { type: String, default: null },
+                date: { type: Date, default: null }
             }
-        },
+        ],
         therapist_comment: String,
         change_history: [{
             doctor_name: String,
@@ -82,7 +109,12 @@ const contractSchema = new Schema({
     date_updated: {
         type: Date,
         default: Date.now
-    }
+    },
+    procedures_by_contract: [{
+        procedure: { type: String, required: true },
+        doctor: { type: String },
+        gender: { type: String, default: null }
+    }]
 });
 
 const Doctor = model('Doctor', doctorSchema);
